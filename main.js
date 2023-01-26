@@ -7,27 +7,33 @@ const WIDTH = 128;
 // Size of Map
 const MAP_WIDTH = 32;                     
 const MAP_HEIGHT = 32;
+// Starting Position
+const START_X = 15;
+const START_Y = 17;
+//Half of Screen Tile Size
+const SCR_WIDTH = 8;
+const SCR_HEIGHT = 8;
 
 const FONT = "12px monospace";            // Font
-const FONTSTYLE = "#ffffff";              // Color of Font
+const FONTSTYLE = "white";              // Color of Font
 const SMOOTH = 0;                         // Retouching
-const TILECOLUMN = 4                      // Tile column
-const TILEROW = 4                         // Tile row
+const TILECOLUMN = 4;                      // Tile column
+const TILEROW = 4;                         // Tile row
 const TILESIZE = 8;                       // Tile Size 
 const WNDSTYLE = "rgba( 0, 0, 0, 0.75)";  // Window Style 
 
 
-let gScreen = 0;         // Virtual Screen
-let gFrame = 0;          // Internal Counter
-let gImgMap;             // Map Image
-let gImgPlayer;          // Player Image
-let gWidth;              // Size of window
+let gScreen;                           // Virtual Screen
+let gFrame = 0;                            // Internal Counter
+let gImgMap;                               // Map Image
+let gImgPlayer;                            // Player Image
+let gWidth;                                // Size of window
 let gHeight;
-let gPlayerX = 0;        // Position of Player
-let gPlayerY = 0;
+let gPlayerX = START_X * TILESIZE;         // Position of Player
+let gPlayerY = START_Y * TILESIZE;
 
 const gFileMap = "img/map.png";
-const gFilePlayer = "img/player.png"
+const gFilePlayer = "img/player.png";
 
 // Map
 //  1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32
@@ -64,23 +70,30 @@ const gMap = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 6, 7, 0, 0, 0, 0, 0, 0, 0, 0,  //30
     7,15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 0, 0, 0, 0, 0,  //31
     7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7,  //32
-]
+];
 
 function DrawMain() {
     // get 2d drawing context of Virtual Screen
     const g = gScreen.getContext("2d"); 
-    for( let dy = -7; dy <= 7; dy++) {
-        let y = dy + 7;
-        let py = (gPlayerY + dy + MAP_HEIGHT) % MAP_HEIGHT;
-        for( let dx = -8; dx <= 8; dx ++){
-            let x = dx + 8
-            let px = (gPlayerX + dx + MAP_WIDTH) % MAP_WIDTH;
+    
+    // Player Position on Tile
+    let mx = Math.floor( gPlayerX / TILESIZE );     
+    let my = Math.floor( gPlayerY / TILESIZE );
+
+    for( let dy = -SCR_HEIGHT; dy <= SCR_HEIGHT; dy++) {
+        let ty = my + dy                            // Tile Position Y
+        let py = (ty + MAP_HEIGHT) % MAP_HEIGHT;    // Position Y after Loop
+        for( let dx = -SCR_WIDTH; dx <= SCR_WIDTH; dx ++){
+            let tx = mx + dx;                       // Tile Position X
+            let px = (tx + MAP_WIDTH) % MAP_WIDTH;  // Position X after Loop
             DrawTile( g,
-                x*TILESIZE - TILESIZE / 2, y*TILESIZE, 
-                gMap[ py * MAP_WIDTH + px]);
+                  tx * TILESIZE + WIDTH / 2 - gPlayerX,
+                  ty * TILESIZE + HEIGHT / 2 - gPlayerY,
+                  gMap[ py * MAP_WIDTH + px]);
             
         }
     }
+
     g.fillStyle = "#ff0000";
     g.fillRect( 0, HEIGHT / 2 - 1, WIDTH, 2);
     g.fillRect( WIDTH / 2, 0, 2, HEIGHT);
@@ -94,7 +107,7 @@ function DrawMain() {
 
     g.font = FONT;                              // Set Basic Font
     g.fillStyle = FONTSTYLE;                    // Color of Font
-    g.fillText("x=" + gPlayerX + " y=" + gPlayerY, 25, 115);
+    g.fillText("x=" + gPlayerX + " y=" + gPlayerY + " m=" + gMap[ my * MAP_WIDTH + mx], 25, 115);
 }
 
 function DrawTile (g, x, y, idx) {
@@ -153,6 +166,12 @@ window.onkeydown = function( ev ) {
     if (c == 38) gPlayerY--; // Up
     if (c == 39) gPlayerX++; // Right
     if (c == 40) gPlayerY++; // Down
+
+    // Operating Map Loop
+    gPlayerX += ( MAP_WIDTH * TILESIZE );
+    gPlayerX %= ( MAP_WIDTH * TILESIZE );
+    gPlayerY += ( MAP_HEIGHT * TILESIZE );
+    gPlayerY %= ( MAP_HEIGHT * TILESIZE );
 }
 
 // browser start event
