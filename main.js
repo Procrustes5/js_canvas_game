@@ -15,22 +15,30 @@ const SCR_WIDTH = 8;
 const SCR_HEIGHT = 8;
 
 const FONT = "12px monospace";            // Font
-const FONTSTYLE = "white";              // Color of Font
+const FONTSTYLE = "white";                // Color of Font
 const SMOOTH = 0;                         // Retouching
-const TILECOLUMN = 4;                      // Tile column
-const TILEROW = 4;                         // Tile row
+const TILECOLUMN = 4;                     // Tile column
+const TILEROW = 4;                        // Tile row
 const TILESIZE = 8;                       // Tile Size 
 const WNDSTYLE = "rgba( 0, 0, 0, 0.75)";  // Window Style 
 
+const gKey = new Uint8Array( 0x100 );     // Key Press Buffer
 
-let gScreen;                           // Virtual Screen
-let gFrame = 0;                            // Internal Counter
-let gImgMap;                               // Map Image
-let gImgPlayer;                            // Player Image
-let gWidth;                                // Size of window
+
+let gAngle = 0;                                               // Angle of Player
+let gScreen;                                              // Virtual Screen
+let gFrame = 0;                                           // Internal Counter
+let gImgMap;                                              // Map Image
+let gImgPlayer;                                           // Player Image
+// Size of window
+let gWidth;                                               
 let gHeight;
-let gPlayerX = START_X * TILESIZE;         // Position of Player
-let gPlayerY = START_Y * TILESIZE;
+// Position of Player
+let gPlayerX = START_X * TILESIZE + TILESIZE / 2;         
+let gPlayerY = START_Y * TILESIZE + TILESIZE / 2;
+// Quantity of Movement
+let gMoveX = 0;
+let gMoveY = 0;
 
 const gFileMap = "img/map.png";
 const gFilePlayer = "img/player.png";
@@ -94,12 +102,13 @@ function DrawMain() {
         }
     }
 
-    g.fillStyle = "#ff0000";
-    g.fillRect( 0, HEIGHT / 2 - 1, WIDTH, 2);
-    g.fillRect( WIDTH / 2, 0, 2, HEIGHT);
+    // g.fillStyle = "#ff0000";
+    // g.fillRect( 0, HEIGHT / 2 - 1, WIDTH, 2);
+    // g.fillRect( WIDTH / 2, 0, 2, HEIGHT);
 
+    // Player
     g.drawImage( gImgPlayer, 
-        0, 0, CHRWIDTH, CHRHEIGHT, 
+        (gFrame >> 3 & 1) * CHRWIDTH, gAngle * CHRHEIGHT, CHRWIDTH, CHRHEIGHT, 
         WIDTH/2 - CHRWIDTH / 2, HEIGHT / 2 - CHRHEIGHT + TILESIZE / 2, CHRWIDTH, CHRHEIGHT);
 
     g.fillStyle = WNDSTYLE; // Color of Window
@@ -121,6 +130,44 @@ function LoadImage() {
     gImgMap.src = gFileMap;                // Read Map source
     gImgPlayer = new Image();
     gImgPlayer.src = gFilePlayer;          // Read Player source
+}
+
+// Processing Field Moving
+function TickFiled() { 
+
+    if (gMoveX != 0 || gMoveY != 0) {}           // While Moving
+    else if (gKey[ 37 ]) { gAngle = 1; gMoveX = -TILESIZE;}     // Left
+    else if (gKey[ 38 ]) { gAngle = 3; gMoveY = -TILESIZE;}     // Up
+    else if (gKey[ 39 ]) { gAngle = 2; gMoveX = TILESIZE;}      // Right
+    else if (gKey[ 40 ]) { gAngle = 0; gMoveY = TILESIZE; }      // Down
+
+    // Identifying Tile Type After Moving
+    let mx = Math.floor( ( gMoveX + gPlayerX) / TILESIZE); // Tile Position after Moving
+    let my = Math.floor( ( gMoveY + gPlayerY) / TILESIZE);
+
+    // Processing Map Loop
+    mx += MAP_WIDTH;
+    mx %= MAP_WIDTH;
+    my += MAP_HEIGHT;
+    my %= MAP_HEIGHT;
+
+    let m = gMap[ my * MAP_WIDTH + mx ]; // Tile Number
+    if (m < 3) {                         // Unavailable Tile Setting (0, 1, 2)
+        gMoveX = 0;
+        gMoveY = 0;
+    }
+
+    // Moving Player Position
+    gPlayerX += Math.sign(gMoveX);
+    gPlayerY += Math.sign(gMoveY);
+    gMoveX -= Math.sign(gMoveX);
+    gMoveY -= Math.sign(gMoveY); 
+
+    // Operating Map Loop
+    gPlayerX += ( MAP_WIDTH * TILESIZE );
+    gPlayerX %= ( MAP_WIDTH * TILESIZE );
+    gPlayerY += ( MAP_HEIGHT * TILESIZE );
+    gPlayerY %= ( MAP_HEIGHT * TILESIZE );
 }
 
 function WmPaint() {
@@ -155,6 +202,7 @@ function WmSize() {
 function WmTimer() {
     // Set Internal Counter
     gFrame++;
+    TickFiled();
     WmPaint();
 }
 
@@ -162,16 +210,12 @@ function WmTimer() {
 window.onkeydown = function( ev ) {
     let c = ev.keyCode;     // Get Key code
 
-    if (c == 37) gPlayerX--; // Left
-    if (c == 38) gPlayerY--; // Up
-    if (c == 39) gPlayerX++; // Right
-    if (c == 40) gPlayerY++; // Down
+    gKey[ c ] = 1;
+}
 
-    // Operating Map Loop
-    gPlayerX += ( MAP_WIDTH * TILESIZE );
-    gPlayerX %= ( MAP_WIDTH * TILESIZE );
-    gPlayerY += ( MAP_HEIGHT * TILESIZE );
-    gPlayerY %= ( MAP_HEIGHT * TILESIZE );
+// Key Up Event
+window.onkeyup = function( ev ) {
+    gKey[ ev.keyCode ] = 0;
 }
 
 // browser start event
