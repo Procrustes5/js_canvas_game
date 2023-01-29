@@ -14,22 +14,25 @@ const START_Y = 17;
 const SCR_WIDTH = 8;
 const SCR_HEIGHT = 8;
 
-const FONT = "12px monospace";            // Font
+const FONT = "12px arial";                // Font
 const FONTSTYLE = "white";                // Color of Font
 const SMOOTH = 0;                         // Retouching
 const TILECOLUMN = 4;                     // Tile column
 const TILEROW = 4;                        // Tile row
 const TILESIZE = 8;                       // Tile Size 
-const WNDSTYLE = "rgba( 0, 0, 0, 0.75)";  // Window Style 
+const WNDSTYLE = "rgba( 0, 0, 0, 0.75)";  // Window Style
+const INTERVAL = 33;                      // Frame rate
+const SCROLL = 2;                         // Speed of Scroll
 
 const gKey = new Uint8Array( 0x100 );     // Key Press Buffer
 
 
-let gAngle = 0;                                               // Angle of Player
+let gAngle = 0;                                           // Angle of Player
 let gScreen;                                              // Virtual Screen
 let gFrame = 0;                                           // Internal Counter
 let gImgMap;                                              // Map Image
 let gImgPlayer;                                           // Player Image
+let gMessage = null;                                      // Message
 // Size of window
 let gWidth;                                               
 let gHeight;
@@ -39,6 +42,7 @@ let gPlayerY = START_Y * TILESIZE + TILESIZE / 2;
 // Quantity of Movement
 let gMoveX = 0;
 let gMoveY = 0;
+let scale = 1;
 
 const gFileMap = "img/map.png";
 const gFilePlayer = "img/player.png";
@@ -83,6 +87,7 @@ const gMap = [
 function DrawMain() {
     // get 2d drawing context of Virtual Screen
     const g = gScreen.getContext("2d"); 
+    g.scale(1, 1)
     
     // Player Position on Tile
     let mx = Math.floor( gPlayerX / TILESIZE );     
@@ -110,13 +115,25 @@ function DrawMain() {
     g.drawImage( gImgPlayer, 
         (gFrame >> 3 & 1) * CHRWIDTH, gAngle * CHRHEIGHT, CHRWIDTH, CHRHEIGHT, 
         WIDTH/2 - CHRWIDTH / 2, HEIGHT / 2 - CHRHEIGHT + TILESIZE / 2, CHRWIDTH, CHRHEIGHT);
+    
+    DrawMessage( g );                           // 
 
-    g.fillStyle = WNDSTYLE; // Color of Window
-    g.fillRect(20, 103, 105, 15);
+    g.fillStyle = WNDSTYLE;                     // Color of Window
+    g.fillRect(20, 3, 105, 15);
 
     g.font = FONT;                              // Set Basic Font
     g.fillStyle = FONTSTYLE;                    // Color of Font
-    g.fillText("x=" + gPlayerX + " y=" + gPlayerY + " m=" + gMap[ my * MAP_WIDTH + mx], 25, 115);
+    g.fillText("x=" + gPlayerX + " y=" + gPlayerY + " m=" + gMap[ my * MAP_WIDTH + mx], 25, 15);
+}
+
+function DrawMessage ( g ) {
+    g.fillStyle = WNDSTYLE;                     // Color of Window
+    g.fillRect(4, 84, 120, 30);
+
+    g.font = FONT;                              // Set Basic Font
+    g.fillStyle = FONTSTYLE; 
+
+    g.fillText(gMessage, 6, 96);
 }
 
 function DrawTile (g, x, y, idx) {
@@ -127,22 +144,22 @@ function DrawTile (g, x, y, idx) {
 
 function LoadImage() {
     gImgMap = new Image();
-    gImgMap.src = gFileMap;                // Read Map source
+    gImgMap.src = gFileMap;                     // Read Map source
     gImgPlayer = new Image();
-    gImgPlayer.src = gFilePlayer;          // Read Player source
+    gImgPlayer.src = gFilePlayer;               // Read Player source
 }
 
 // Processing Field Moving
 function TickFiled() { 
 
-    if (gMoveX != 0 || gMoveY != 0) {}           // While Moving
-    else if (gKey[ 37 ]) { gAngle = 1; gMoveX = -TILESIZE;}     // Left
-    else if (gKey[ 38 ]) { gAngle = 3; gMoveY = -TILESIZE;}     // Up
-    else if (gKey[ 39 ]) { gAngle = 2; gMoveX = TILESIZE;}      // Right
+    if (gMoveX != 0 || gMoveY != 0) {}                           // While Moving
+    else if (gKey[ 37 ]) { gAngle = 1; gMoveX = -TILESIZE;}      // Left
+    else if (gKey[ 38 ]) { gAngle = 3; gMoveY = -TILESIZE;}      // Up
+    else if (gKey[ 39 ]) { gAngle = 2; gMoveX = TILESIZE;}       // Right
     else if (gKey[ 40 ]) { gAngle = 0; gMoveY = TILESIZE; }      // Down
 
     // Identifying Tile Type After Moving
-    let mx = Math.floor( ( gMoveX + gPlayerX) / TILESIZE); // Tile Position after Moving
+    let mx = Math.floor( ( gMoveX + gPlayerX) / TILESIZE);       // Tile Position after Moving
     let my = Math.floor( ( gMoveY + gPlayerY) / TILESIZE);
 
     // Processing Map Loop
@@ -156,12 +173,19 @@ function TickFiled() {
         gMoveX = 0;
         gMoveY = 0;
     }
+    if( m == 8 || m == 9) {
+        gMessage = "Defeat the Devil!";
+    }
+
+    if( m == 10 || m == 11) {
+        gMessage = "There is another town on Western side.";
+    }
 
     // Moving Player Position
-    gPlayerX += Math.sign(gMoveX);
-    gPlayerY += Math.sign(gMoveY);
-    gMoveX -= Math.sign(gMoveX);
-    gMoveY -= Math.sign(gMoveY); 
+    gPlayerX += Math.sign(gMoveX) * SCROLL;
+    gPlayerY += Math.sign(gMoveY) * SCROLL;
+    gMoveX -= Math.sign(gMoveX) * SCROLL;
+    gMoveY -= Math.sign(gMoveY) * SCROLL; 
 
     // Operating Map Loop
     gPlayerX += ( MAP_WIDTH * TILESIZE );
@@ -181,13 +205,12 @@ function WmPaint() {
 
 // Changing Browser Size Event
 function WmSize() {
-    const ca = document.getElementById("main"); // get element of main canvas
-    ca.width = window.innerWidth;               // Change Canvas width for Browser width
+    const ca = document.getElementById("main");                      // get element of main canvas
+    ca.width = window.innerWidth;                              // Change Canvas width for Browser width
     ca.height = window.innerHeight;
 
-    const g = ca.getContext("2d");              // get 2d drawing context
-    g.imageSmoothingEnabled = g.msImageSmoothingEnabled = SMOOTH; // Clear the Window
-
+    const g = ca.getContext("2d");                                   // get 2d drawing context
+    g.imageSmoothingEnabled = g.msImageSmoothingEnabled = SMOOTH;    // Clear the Window
     // Measure Size of the Window, 
     // Measure Maximum Size with maintaining aspect ratio of dot image
     gWidth = ca.width;
@@ -205,6 +228,7 @@ function WmTimer() {
     TickFiled();
     WmPaint();
 }
+
 
 // Key Down Event
 window.onkeydown = function( ev ) {
@@ -229,5 +253,5 @@ window.onload = function() {
 
     WmSize();                                   // Initialize Window size
     window.addEventListener("resize", function(){ WmSize() }); // Respond to Changed Window
-    setInterval( function() { WmTimer() }, 33); // call WmTimer every 33ms (About 30.3fps)
+    setInterval( function() { WmTimer() }, INTERVAL); // call WmTimer every 33ms (About 30.3fps)
 }
