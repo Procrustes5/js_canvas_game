@@ -32,7 +32,8 @@ let gScreen;                                              // Virtual Screen
 let gFrame = 0;                                           // Internal Counter
 let gImgMap;                                              // Map Image
 let gImgPlayer;                                           // Player Image
-let gMessage = null;                                      // Message
+let gMessage1 = null;                                      // Message
+let gMessage2 = null;
 // Size of window
 let gWidth;                                               
 let gHeight;
@@ -127,19 +128,33 @@ function DrawMain() {
 }
 
 function DrawMessage ( g ) {
+
+    if ( !gMessage1 ) {                          // If there is no message
+        return;
+    }
+
     g.fillStyle = WNDSTYLE;                     // Color of Window
     g.fillRect(4, 84, 120, 30);
 
     g.font = FONT;                              // Set Basic Font
     g.fillStyle = FONTSTYLE; 
 
-    g.fillText(gMessage, 6, 96);
+    g.fillText(gMessage1, 6, 96);
+
+    if (gMessage2) {
+        g.fillText(gMessage2, 6, 110);
+    }
 }
 
 function DrawTile (g, x, y, idx) {
     const ix = (idx % TILECOLUMN) * TILESIZE;
     const iy = Math.floor(idx / TILECOLUMN) * TILESIZE;
     g.drawImage( gImgMap, ix, iy, TILESIZE, TILESIZE, x, y, TILESIZE, TILESIZE);
+}
+
+function SetMessage (v1, v2 = null) {
+    gMessage1 = v1;
+    gMessage2 = v2;
 }
 
 function LoadImage() {
@@ -173,13 +188,37 @@ function TickFiled() {
         gMoveX = 0;
         gMoveY = 0;
     }
-    if( m == 8 || m == 9) {
-        gMessage = "Defeat the Devil!";
+
+    if (Math.abs( gMoveX ) + Math.abs( gMoveY ) == SCROLL) { // After Reach to Next Tile
+        
+        if( m == 8 || m == 9) {              // Castle
+            SetMessage("Defeat the Devil!");
+        }
+    
+        if( m == 10 || m == 11) {            // Street
+            SetMessage("There is another town", "on the West.");
+        }
+    
+        if( m == 12 ) {                      // Town
+            SetMessage("There is the key", "at the cave.");
+        }
+    
+        if ( m == 13) {                      // Cave
+            SetMessage("I get the key.");
+        }
+    
+        if ( m == 14) {                      // Door
+            gPlayerY -= TILESIZE;
+            SetMessage("You need key.");
+        //    SetMessage("The door opens");
+        }
+    
+        if ( m == 15) {                      // Boss
+            SetMessage("Devil Defeated", "Peace came to the town.");
+        }
     }
 
-    if( m == 10 || m == 11) {
-        gMessage = "There is another town on Western side.";
-    }
+    
 
     // Moving Player Position
     gPlayerX += Math.sign(gMoveX) * SCROLL;
@@ -234,7 +273,14 @@ function WmTimer() {
 window.onkeydown = function( ev ) {
     let c = ev.keyCode;     // Get Key code
 
+    if( gKey[ c ] != 0 ) {  // Condition : Press down already
+        return;             // Key Repeat
+    }
+
     gKey[ c ] = 1;
+
+    gMessage1 = null;
+    gMessage2 = null;
 }
 
 // Key Up Event
